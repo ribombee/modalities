@@ -1,0 +1,5 @@
+speeds:
+  slow: 0.5
+  normal: 1
+  fast: 2
+game_length: 5

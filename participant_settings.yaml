@@ -1,0 +1,29 @@
+
+participant_ids:
+  - "1"
+  - "2"
+
+1:
+  modality_order:
+    - "pref"
+    - "demo"
+  pref:
+    - "slow"
+    - "medium"
+    - "fast"
+  demo:
+    - "medium"
+    - "fast"
+    - "slow"
+2:
+  modality_order:
+    - "demo"
+    - "pref"
+  pref:
+    - "fast"
+    - "medium"
+    - "slow"
+  demo:
+    - "slow"
+    - "fast"
+    - "medium"
