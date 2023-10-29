@@ -73,7 +73,7 @@ def play_game_warmup(speed, duration):
         # Game step
         state, reward, done = env.step(action)
         reward_sum += reward
-        db.append(np.array((state,reward,done,action)))
+        db.append((state,reward,done,action))
 
         # Render
         stdscr.clear()
