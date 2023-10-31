@@ -8,16 +8,12 @@ from omegaconf import OmegaConf
 # added imports for tetrisRL
 import curses
 import numpy as np
+import pickle
 import os
 from engine import TetrisEngine
+from datetime import datetime
 
 import time
-
-def play_game_demonstration(speed, duration):
-
-    # Run a demonstration session for N minutes at speed <speed>
-    print(f"demo at speed {speed}")
-    pass
 
 def play_game_TAMER(speed, duration):
 
@@ -26,7 +22,7 @@ def play_game_TAMER(speed, duration):
     print(f"preferences at speed {speed}")
     pass
 
-def play_game_warmup(speed, duration):
+def play_game_demonstration(speed, duration):
 
     # Run a normal tetris session for N minutes at speed <speed>
     # No agent is learning anything from this.
@@ -47,6 +43,7 @@ def play_game_warmup(speed, duration):
     stdscr.addstr(str(env))
 
     # store information about playthrough
+    # df = pd.DataFrame(columns=["state", "reward", "done", "action"])
     db = []
     reward_sum = 0
 
@@ -73,7 +70,8 @@ def play_game_warmup(speed, duration):
         # Game step
         state, reward, done = env.step(action)
         reward_sum += reward
-        db.append((state,reward,done,action))
+        db.append((state, reward, done, action))
+        # db = pd.concat([df, pd.DataFrame({"state": state, "reward": reward, "done": done, "action": action})], ignore_index=True)
 
         # Render
         stdscr.clear()
@@ -85,7 +83,7 @@ def play_game_warmup(speed, duration):
     
     terminate_game(stdscr)
 
-    return
+    return db
 
 def initialize_game(speed, stdscr):
     # Don't display user input
@@ -104,7 +102,7 @@ def terminate_game(stdscr):
 def run_all_experiments(log_path, conf, experiment_settings):
 
     slow_speed = conf.speeds.slow
-    normal_speed = conf.speeds.normal
+    normal_speed = conf.speeds.medium
     fast_speed = conf.speeds.fast
 
     # Game duration in minutes
@@ -121,17 +119,36 @@ def run_all_experiments(log_path, conf, experiment_settings):
 
     # Run tetris for N minutes so people get used to it.
 
-    play_game_warmup(normal_speed, game_duration)
+    warmup_log_db = play_game_demonstration(normal_speed, game_duration)
+    with (log_path / f"warmup_game.pickle").open("wb") as fp:
+        pickle.dump(warmup_log_db, fp)
 
     for modality, speed in experiment_order:
 
         if modality == "pref":
-            pass
+
+            print(f"ABOUT TO START A PREF GAAAAMEEEE")
         elif modality == "demo":
-            pass
+
+            print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
+
+            demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration)
+            with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
+                pickle.dump(demo_log_db, fp)
         else:
             raise ValueError("Experiment modality must be pref or demo.")
 
+        print(f"Thank you! You've just completed a {modality} game at the {speed} speed.")
+        print(f"Type 'next' to continue to the next game!")
+
+        while True:
+
+            user_input = input()
+            if user_input == "next":
+                break
+
+    with (log_path / "conf.yaml").open("w") as fp:
+        OmegaConf.save(conf, fp)
 
 
 def __read_conf():
@@ -171,4 +188,11 @@ if __name__ == "__main__":
 
     print(f"This participant's settings: {experiment_settings}")
 
-    run_all_experiments(log_path=log_path, conf=conf, experiment_settings=experiment_settings)
+    if not log_path.exists():
+        log_path.mkdir()
+    time_now = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+    participant_folder_path = log_path / f"participant_{participant_id}_{time_now}"
+    if not participant_folder_path.exists():
+        participant_folder_path.mkdir()
+
+    run_all_experiments(log_path=participant_folder_path, conf=conf, experiment_settings=experiment_settings)

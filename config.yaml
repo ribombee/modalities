@@ -1,5 +1,5 @@
 speeds:
   slow: 10
-  normal: 5
+  medium: 5
   fast: 1
-game_length: 20
+game_length: 10
