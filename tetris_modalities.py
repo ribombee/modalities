@@ -1,9 +1,10 @@
 """
 Written with reference to user_engine.py script in tetrisRL repo
 """
-
 from pathlib import Path
 from omegaconf import OmegaConf
+
+from tamer import TAMER 
 
 # added imports for tetrisRL
 import curses
@@ -13,19 +14,81 @@ import os
 from engine import TetrisEngine
 from datetime import datetime
 
+import torch
 import time
+
 
 def play_game_TAMER(speed, duration):
 
     # Run a TAMER session for N minutes at speed <speed>
 
-    print(f"preferences at speed {speed}")
-    pass
+    print(f"scalar feedback at speed {speed}")
+    stdscr = curses.initscr()
+    width, height = 10, 20 # standard tetris friends rules
+    env = TetrisEngine(width, height)
+    
+    use_cuda = torch.cuda.is_available()
+    FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
+
+    # init timer
+    start = time.time()
+    curr = time.time()
+
+    # init our game
+    initialize_game(speed, stdscr)
+    stdscr.clear()
+    env.clear()
+
+    # init render
+    stdscr.addstr(str(env))
+
+    # store information about playthrough
+    # df = pd.DataFrame(columns=["state", "reward", "done", "action"])
+    db = []
+    reward_sum = 0
+
+    duration = 10000
+    # initialize our model
+    tamer = TAMER(speed)
+    model_state = FloatTensor(env.clear()[None,None,:,:])
+    while curr - start < duration:
+        curr = time.time()
+        key = stdscr.getch()
+        
+        human_reward = 0
+
+        if key == ord("z"):
+            human_reward = 1
+        elif key == ord("x"):
+            human_reward = -1
+
+        # Game step
+        action = int(tamer.select_action(model_state))
+        state, reward, done = env.step(action)
+        model_state = FloatTensor(state[None,None,:,:])
+        reward_sum += reward
+        db.append((state, reward, done, action))
+        
+        # Render
+        stdscr.clear()
+        stdscr.addstr(str(env))
+
+        tamer.training_step(model_state, action, human_reward)
+
+        # can remove these if desired
+        stdscr.addstr('\ncumulative reward: ' + str(reward_sum))
+        stdscr.addstr('\ntime: ' + str(round(curr - start, 2)) + ' seconds')
+        if human_reward == 1:
+            stdscr.addstr('\nPOSITIVE REWARD')
+        elif human_reward == -1:
+            stdscr.addstr('\nNEGATIVE REWARD')
+    
+    terminate_game(stdscr)
 
 def play_game_demonstration(speed, duration, conf):
 
     # Run a normal tetris session for N minutes at speed <speed>
-    # No agent is learning anything from this.
+    # An agent is learning something from this when it's demonstration time
     stdscr = curses.initscr()
     width, height = conf.tetris_settings.width, conf.tetris_settings.height
     env = TetrisEngine(width, height)
@@ -127,7 +190,7 @@ def run_all_experiments(log_path, conf, experiment_settings):
 
         if modality == "pref":
 
-            print(f"ABOUT TO START A PREF GAAAAMEEEE")
+            print(f"ABOUT TO START A SCALAR FEEDBACK GAAAAMEEEE")
         elif modality == "demo":
 
             print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
@@ -180,7 +243,6 @@ def __parse_args():
     return Path(args[0].log_dir), args[0].participant_id
 
 if __name__ == "__main__":
-
     log_path, participant_id = __parse_args()
 
     conf, participant_settings = __read_conf()
