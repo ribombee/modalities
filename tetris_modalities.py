@@ -22,12 +22,12 @@ def play_game_TAMER(speed, duration):
     print(f"preferences at speed {speed}")
     pass
 
-def play_game_demonstration(speed, duration):
+def play_game_demonstration(speed, duration, conf):
 
     # Run a normal tetris session for N minutes at speed <speed>
     # No agent is learning anything from this.
     stdscr = curses.initscr()
-    width, height = 10, 20 # standard tetris friends rules
+    width, height = conf.tetris_settings.width, conf.tetris_settings.height
     env = TetrisEngine(width, height)
 
     # init timer
@@ -133,6 +133,7 @@ def run_all_experiments(log_path, conf, experiment_settings):
             print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
 
             demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration)
+            print(demo_log_db[-1])
             with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
                 pickle.dump(demo_log_db, fp)
         else:

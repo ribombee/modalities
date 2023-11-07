@@ -3,3 +3,10 @@ speeds:
   medium: 5
   fast: 1
 game_length: 10
+tetris_settings:
+  width: 10
+  height: 20
+training:
+  lr: 0.0001
+  batch_size: 64
+  epochs: 500
