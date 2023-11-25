@@ -21,19 +21,20 @@ ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 class BasicFF(nn.Module):
     def __init__(self, fan_in=200, fan_out=7):
         super().__init__()
-        self.bn1 = nn.BatchNorm1d(fan_in)
-        self.ff1 = nn.Linear(fan_in, 600)
-        self.bn2 = nn.BatchNorm1d(600)
-        self.ff2 = nn.Linear(600, 800)
-        self.bn3 = nn.BatchNorm1d(800)
-        self.ff3 = nn.Linear(800, fan_out)
+        #self.bn1 = nn.BatchNorm1d(fan_in)
+        self.ff1 = nn.Linear(fan_in, 100)
+        self.relu = nn.ReLU()
+        #self.bn2 = nn.BatchNorm1d(600)
+        self.ff2 = nn.Linear(100, 10)
+        #self.bn3 = nn.BatchNorm1d(800)
+        self.ff3 = nn.Linear(10, fan_out)
 
     def forward(self, x):
         if len(x.shape) == 4:
             x = x.view(x.shape[0], -1)
-        h = self.ff1(self.bn1(x))
-        h = self.ff2(self.bn2(h))
-        return self.ff3(self.bn3(h))
+        h = self.relu(self.ff1(x))
+        h = self.relu(self.ff2(h))
+        return self.ff3(h)
 
 
 class ReplayMemory(object):
@@ -99,8 +100,8 @@ class TAMER:
         # if we have a human reward, add the appropriate states to buffer and optimize model
         if h != 0:
             # set states to apply reward to based on [0.2, 4] second interval
-            start = len(self.history) - 1
-            end = int(start - (10 / self.speed))
+            start = len(self.history) - 3
+            end = int(start - (4000 / self.speed))
             if end < 0:
                 end = 0
             minibatch = self.history[end:start]
