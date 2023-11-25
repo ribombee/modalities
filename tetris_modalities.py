@@ -47,7 +47,6 @@ def play_game_TAMER(speed, duration):
     db = []
     reward_sum = 0
 
-    duration = 10000
     # initialize our model
     tamer = TAMER(speed)
     model_state = FloatTensor(env.clear()[None,None,:,:])
@@ -84,6 +83,7 @@ def play_game_TAMER(speed, duration):
             stdscr.addstr('\nNEGATIVE REWARD')
     
     terminate_game(stdscr)
+    return db
 
 def play_game_demonstration(speed, duration, conf):
 
@@ -152,9 +152,11 @@ def initialize_game(speed, stdscr):
     # Don't display user input
     curses.noecho()
     # React to keys without pressing enter (700ms delay)
-    curses.halfdelay(speed)
+    #curses.halfdelay(speed)
+    curses.cbreak()
     # Enumerate keys
     stdscr.keypad(True)
+    stdscr.timeout(speed)
 
 def terminate_game(stdscr):
     curses.nocbreak()
@@ -178,24 +180,26 @@ def run_all_experiments(log_path, conf, experiment_settings):
         for speed in experiment_settings[modality]:
             experiment_order.append((modality, speed))
 
-    print(experiment_order)
-
     # Run tetris for N minutes so people get used to it.
-
-    warmup_log_db = play_game_demonstration(normal_speed, game_duration)
+    input("Hello! Welcome to a pilot study on human-in-the-loop reinforcement learning modalities. Press enter for practice time!")
+    warmup_log_db = play_game_demonstration(normal_speed, game_duration, conf)
     with (log_path / f"warmup_game.pickle").open("wb") as fp:
         pickle.dump(warmup_log_db, fp)
 
+    input("Practice session over! When you are ready to proceed, press enter.")
     for modality, speed in experiment_order:
 
         if modality == "pref":
 
             print(f"ABOUT TO START A SCALAR FEEDBACK GAAAAMEEEE")
+            feedback_log_db = play_game_TAMER(conf.speeds[speed], duration=game_duration)
+            with (log_path / f"feedback_{speed}.pickle").open("wb") as fp:
+                pickle.dump(feedback_log_db, fp)
         elif modality == "demo":
 
             print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
 
-            demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration)
+            demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration, conf=conf)
             print(demo_log_db[-1])
             with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
                 pickle.dump(demo_log_db, fp)

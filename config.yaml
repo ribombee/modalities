@@ -1,7 +1,7 @@
 speeds:
-  slow: 10
-  medium: 5
-  fast: 1
+  slow: 200
+  medium: 100
+  fast: 50
 game_length: 10
 tetris_settings:
   width: 10
