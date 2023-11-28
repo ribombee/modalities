@@ -117,5 +117,3 @@ class TAMER:
                 pred, targ = self.get_pred_targ(state_, action_, h_)
                 self.optimize_supervised(pred, targ)
         
-
-
