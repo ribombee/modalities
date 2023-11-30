@@ -4,7 +4,9 @@ Written with reference to user_engine.py script in tetrisRL repo
 from pathlib import Path
 from omegaconf import OmegaConf
 
-from tamer import TAMER 
+from tamer import TAMER
+from train_on_demo import DemoDataset, train_model
+from demo_model_play import play_game_agent
 
 # added imports for tetrisRL
 import curses
@@ -16,6 +18,7 @@ from datetime import datetime
 
 import torch
 import time
+import matplotlib.pyplot as plt
 
 
 def play_game_TAMER(speed, duration):
@@ -148,6 +151,28 @@ def play_game_demonstration(speed, duration, conf):
 
     return db
 
+def train_on_demo(demo_db, output_path, modelname, conf):
+    dataset = DemoDataset(demo_db, device=conf.training.device)
+    dataloader = torch.utils.data.DataLoader(dataset=dataset, shuffle=True, batch_size=conf.training.batch_size)
+
+    model, loss_list = train_model(conf, dataloader)
+
+    loss_list = [item.detach().cpu().numpy() for item in loss_list]
+    plt.plot(loss_list)
+    plt.savefig(output_path / f"model_loss_{modelname}")
+
+    with (output_path / f"losses_{modelname}.pickle").open('wb') as f:
+        pickle.dump(loss_list, f)
+
+    return model
+
+
+def show_demo_agent_playing(model, speed, duration):
+
+    play_db = play_game_agent(model, speed, duration)
+
+    return play_db
+
 def initialize_game(speed, stdscr):
     # Don't display user input
     curses.noecho()
@@ -186,8 +211,16 @@ def run_all_experiments(log_path, conf, experiment_settings):
     with (log_path / f"warmup_game.pickle").open("wb") as fp:
         pickle.dump(warmup_log_db, fp)
 
-    input("Practice session over! When you are ready to proceed, press enter.")
+    input("Practice session over! Press enter to continue")
     for modality, speed in experiment_order:
+
+        print(f"Type 'next' to continue to the next game!")
+
+        while True:
+
+            user_input = input()
+            if user_input == "next":
+                break
 
         if modality == "pref":
 
@@ -200,20 +233,20 @@ def run_all_experiments(log_path, conf, experiment_settings):
             print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
 
             demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration, conf=conf)
-            print(demo_log_db[-1])
+            # print(demo_log_db[-1])
+            model = train_on_demo(demo_log_db, log_path, f"{modality}_{speed}", conf)
+            playback_db = play_game_agent(model, conf.speeds[speed], game_duration)
+
             with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
                 pickle.dump(demo_log_db, fp)
+            with (log_path / f"demo_BC_{speed}.pickle").open("wb") as fp:
+                pickle.dump(playback_db, fp)
+
         else:
             raise ValueError("Experiment modality must be pref or demo.")
 
         print(f"Thank you! You've just completed a {modality} game at the {speed} speed.")
-        print(f"Type 'next' to continue to the next game!")
 
-        while True:
-
-            user_input = input()
-            if user_input == "next":
-                break
 
     with (log_path / "conf.yaml").open("w") as fp:
         OmegaConf.save(conf, fp)
