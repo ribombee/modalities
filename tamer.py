@@ -9,11 +9,9 @@ from engine import TetrisEngine
 from random import shuffle
 from random import sample
 
-use_cuda = torch.cuda.is_available()
-if use_cuda:print("....Using Gpu...")
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
-ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
+FloatTensor = torch.FloatTensor
+LongTensor = torch.LongTensor
+ByteTensor = torch.ByteTensor
 
 
 
@@ -61,11 +59,11 @@ class TAMER:
     def __init__(self, speed):
         self.model = BasicFF()
         self.loss = nn.MSELoss()
-        self.optimizer = optim.RMSprop(self.model.parameters(), lr=0.001)
+        self.optimizer = optim.RMSprop(self.model.parameters(), lr=0.0001)
         self.history = []
         self.memory = ReplayMemory(3000)
         self.steps = 0
-        self.batch_training = 100
+        self.batch_training = 20
         self.batch_size = 32
         self.speed = speed
 
@@ -99,9 +97,9 @@ class TAMER:
         self.history.append((state.clone(), action))
         # if we have a human reward, add the appropriate states to buffer and optimize model
         if h != 0:
-            # set states to apply reward to based on [0.2, 4] second interval
-            start = len(self.history) - 3
-            end = int(start - (4000 / self.speed))
+            # set states to apply reward to based on [0.2, 2] second interval
+            start = len(self.history) - int(200 / self.speed) - 1
+            end = int(start - (2000 / self.speed))
             if end < 0:
                 end = 0
             minibatch = self.history[end:start]
@@ -116,4 +114,6 @@ class TAMER:
             for state_, action_, h_ in self.memory.sample(self.batch_size):
                 pred, targ = self.get_pred_targ(state_, action_, h_)
                 self.optimize_supervised(pred, targ)
-        
+    
+    def save_model(self, filename):
+        torch.save(self.model, filename)

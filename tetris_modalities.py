@@ -83,7 +83,8 @@ def play_game_TAMER(speed, duration):
             stdscr.addstr('\nNEGATIVE REWARD')
     
     terminate_game(stdscr)
-    return db
+    
+    return db, tamer
 
 def play_game_demonstration(speed, duration, conf):
 
@@ -190,17 +191,14 @@ def run_all_experiments(log_path, conf, experiment_settings):
     for modality, speed in experiment_order:
 
         if modality == "pref":
-
-            print(f"ABOUT TO START A SCALAR FEEDBACK GAAAAMEEEE")
-            feedback_log_db = play_game_TAMER(conf.speeds[speed], duration=game_duration)
+            input("You will now be training an agent using scalar feedback. Use Z to give positive feedback, and X to give negative feedback. Press enter to begin.")
+            feedback_log_db, tamer = play_game_TAMER(conf.speeds[speed], duration=game_duration)
             with (log_path / f"feedback_{speed}.pickle").open("wb") as fp:
                 pickle.dump(feedback_log_db, fp)
+            tamer.save_model(log_path / f"tamer_{speed}")
         elif modality == "demo":
-
-            print(f"ABOUT TO START A DEMO GAAAAAAMEEEEE")
-
+            input("You will now be training an agent using demonstration. Control the game as normal, and aim to play as well as possible. Press enter to begin.")
             demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration, conf=conf)
-            print(demo_log_db[-1])
             with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
                 pickle.dump(demo_log_db, fp)
         else:
@@ -217,7 +215,8 @@ def run_all_experiments(log_path, conf, experiment_settings):
 
     with (log_path / "conf.yaml").open("w") as fp:
         OmegaConf.save(conf, fp)
-
+    
+    print("Thank you for taking part in our study. Please fill out the demographics survey before leaving!")
 
 def __read_conf():
 
