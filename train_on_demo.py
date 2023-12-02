@@ -23,8 +23,9 @@ def load_demonstration(demo_path):
 
 class DemoDataset(torch.utils.data.Dataset):
 
-    def __init__(self, demo_log):
+    def __init__(self, demo_log, device):
         self.n_SA_pairs= len(demo_log)
+        self.device = device
         self.states, self.actions = self.strip_to_SA_pairs(demo_log)
 
     def __len__(self):
@@ -44,12 +45,17 @@ class DemoDataset(torch.utils.data.Dataset):
         actions = []
 
         for item in demo_log:
+
+            if item[-1] == 6:
+                # print("working")
+                pass
+
             state = item[0]
             flat_state = []
             [flat_state.extend(row) for row in state]
             flat_state = list(map(int, flat_state)) # Convert from bool to int
-            flat_state = torch.tensor(flat_state, dtype=torch.float32)
-            action = torch.tensor(item[-1], dtype=torch.int64)
+            flat_state = torch.tensor(flat_state, dtype=torch.float32, device=self.device)
+            action = torch.tensor(item[-1], dtype=torch.int64, device=self.device)
 
             states.append(flat_state)
             actions.append(action)
@@ -92,7 +98,7 @@ class ff_model(nn.Module):
 
 def train_model(conf, dataloader):
 
-    model = ff_model(conf)
+    model = ff_model(conf).to(conf.training.device)
 
     # TODO: there is a significant chance that the amount of NOOPS will result in
     #  difficulty converging and we may need to set weights.
@@ -113,7 +119,7 @@ def train_model(conf, dataloader):
             cost.backward()
             opt.step()
         if j % 50 == 0:
-            print(cost)
+            # print(cost)
             loss_list.append(cost)
 
     return model, loss_list
@@ -154,7 +160,7 @@ if __name__ == "__main__":
     conf = __read_conf()
     # Load the demo log as a list of (state, reward, done, action) tuples
     demo_db = load_demonstration(demo_pickle_path)
-    dataset = DemoDataset(demo_db)
+    dataset = DemoDataset(demo_db, conf.training.device)
     dataloader = torch.utils.data.DataLoader(dataset=dataset, shuffle=True, batch_size=conf.training.batch_size)
 
     model, loss_list = train_model(conf, dataloader)

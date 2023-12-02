@@ -2,7 +2,7 @@ speeds:
   slow: 200
   medium: 100
   fast: 50
-game_length: 10
+game_length: 180
 tetris_settings:
   width: 10
   height: 20
@@ -10,3 +10,4 @@ training:
   lr: 0.0001
   batch_size: 64
   epochs: 500
+  device: cuda

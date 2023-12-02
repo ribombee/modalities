@@ -7,11 +7,7 @@ import time
 
 FloatTensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
-# TODO: implement model loading here
-def load_model():
-    pass
-
-def play_game_agent(speed, duration):
+def play_game_agent(model, speed, duration):
 
     # Run a TAMER session for N minutes at speed <speed>
 
@@ -19,8 +15,6 @@ def play_game_agent(speed, duration):
     stdscr = curses.initscr()
     width, height = 10, 20 # standard tetris friends rules
     env = TetrisEngine(width, height)
-
-    model = load_model()
 
     # init timer
     start = time.time()
@@ -39,6 +33,10 @@ def play_game_agent(speed, duration):
     db = []
     reward_sum = 0
 
+    # Sends a single NOOP action at the start of the game, I guess?
+    # If there's some way to grab the initial state idk
+    model_state = FloatTensor(env.clear()[None,None,:,:])
+    model_state = torch.flatten(model_state)
     # initialize our model
     while curr - start < duration:
         curr = time.time()
@@ -46,11 +44,15 @@ def play_game_agent(speed, duration):
         
         # Game step
         # TODO: ensure this is block works with model input
-        predictions = model(Variable(model_state).type(FloatTensor)) 
-        action = predictions.data.max(1)[1].view(1, 1)
+        predictions = model(Variable(model_state).type(FloatTensor))
+
+        # print(predictions)
+        # action = predictions.data.max(1)[1].view(1, 1)
+        action = int(torch.argmax(predictions).item())
 
         state, reward, done = env.step(action)
         model_state = FloatTensor(state[None,None,:,:])
+        model_state = torch.flatten(model_state)
         reward_sum += reward
         db.append((state, reward, done, action))
         
