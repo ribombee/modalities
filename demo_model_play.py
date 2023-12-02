@@ -11,7 +11,7 @@ def play_game_agent(model, speed, duration):
 
     # Run a TAMER session for N minutes at speed <speed>
 
-    print(f"scalar feedback at speed {speed}")
+    #print(f"scalar feedback at speed {speed}")
     stdscr = curses.initscr()
     width, height = 10, 20 # standard tetris friends rules
     env = TetrisEngine(width, height)

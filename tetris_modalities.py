@@ -21,7 +21,7 @@ import time
 import matplotlib.pyplot as plt
 
 
-def play_game_TAMER(speed, duration):
+def play_game_TAMER(speed, duration, logpath):
 
     # Run a TAMER session for N minutes at speed <speed>
 
@@ -44,6 +44,9 @@ def play_game_TAMER(speed, duration):
 
     # init render
     stdscr.addstr(str(env))
+
+    one_minute = False
+    two_minute = False
 
     # store information about playthrough
     # df = pd.DataFrame(columns=["state", "reward", "done", "action"])
@@ -84,6 +87,14 @@ def play_game_TAMER(speed, duration):
             stdscr.addstr('\nPOSITIVE REWARD')
         elif human_reward == -1:
             stdscr.addstr('\nNEGATIVE REWARD')
+        
+        # save after 1 minute and 2 minutes
+        if (curr - start) > 60 and not one_minute:
+            one_minute = True
+            tamer.save_model(logpath / f"tamer_{speed}_1")
+        elif (curr - start) > 120 and not two_minute:
+            two_minute = True
+            tamer.save_model(logpath / f"tamer_{speed}_2")
     
     terminate_game(stdscr)
     
@@ -215,17 +226,17 @@ def run_all_experiments(log_path, conf, experiment_settings):
     input("Practice session over! Press enter to continue")
     for modality, speed in experiment_order:
 
-        print(f"Type 'next' to continue to the next game!")
+        # print(f"Type 'next' to continue to the next game!")
 
-        while True:
+        # while True:
 
-            user_input = input()
-            if user_input == "next":
-                break
+        #     user_input = input()
+        #     if user_input == "next":
+        #         break
 
         if modality == "pref":
             input("You will now be training an agent using scalar feedback. Use Z to give positive feedback, and X to give negative feedback. Press enter to begin.")
-            feedback_log_db, tamer = play_game_TAMER(conf.speeds[speed], duration=game_duration)
+            feedback_log_db, tamer = play_game_TAMER(conf.speeds[speed], duration=game_duration, logpath=log_path)
             with (log_path / f"feedback_{speed}.pickle").open("wb") as fp:
                 pickle.dump(feedback_log_db, fp)
             tamer.save_model(log_path / f"tamer_{speed}")
@@ -234,7 +245,8 @@ def run_all_experiments(log_path, conf, experiment_settings):
             demo_log_db = play_game_demonstration(conf.speeds[speed], duration=game_duration, conf=conf)
             # print(demo_log_db[-1])
             model = train_on_demo(demo_log_db, log_path, f"{modality}_{speed}", conf)
-            playback_db = play_game_agent(model, conf.speeds[speed], game_duration)
+            input("You will now be able to watch your trained agent via demonstration. The replay will go on for 30 seconds. Press enter to continue.")
+            playback_db = play_game_agent(model, conf.speeds[speed], 30)
 
             with (log_path / f"demo_{speed}.pickle").open("wb") as fp:
                 pickle.dump(demo_log_db, fp)
@@ -260,8 +272,8 @@ def __read_conf():
     conf = OmegaConf.load(conf_file)
     participant_settings = OmegaConf.load(participant_setting_file)
 
-    print(f" Loaded configs: {conf}")
-    print(f" Loaded participants: {participant_settings}")
+    #print(f" Loaded configs: {conf}")
+    #print(f" Loaded participants: {participant_settings}")
 
     return conf, participant_settings
 
@@ -275,7 +287,7 @@ def __parse_args():
 
     args = parser.parse_known_args()
 
-    print(type(args[0].log_dir), type(args[0].participant_id))
+    #print(type(args[0].log_dir), type(args[0].participant_id))
     
     return Path(args[0].log_dir), args[0].participant_id
 
@@ -286,7 +298,7 @@ if __name__ == "__main__":
 
     experiment_settings = participant_settings[participant_id]
 
-    print(f"This participant's settings: {experiment_settings}")
+    #print(f"This participant's settings: {experiment_settings}")
 
     if not log_path.exists():
         log_path.mkdir()
