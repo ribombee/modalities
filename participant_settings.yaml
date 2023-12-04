@@ -27,3 +27,27 @@ participant_ids:
     - "slow"
     - "fast"
     - "medium"
+4:
+  modality_order:
+    - "demo"
+    - "pref"
+  pref:
+    - "medium"
+    - "slow"
+    - "fast"
+  demo:
+    - "fast"
+    - "slow"
+    - "medium"
+5:
+  modality_order:
+    - "pref"
+    - "demo"
+  pref:
+    - "fast"
+    - "slow"
+    - "medium"
+  demo:
+    - "fast"
+    - "medium"
+    - "slow"
